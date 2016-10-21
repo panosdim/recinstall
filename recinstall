@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+# ---------------------------------------------------------------------------
+# recinstall -- Record the file changes of make install command
+#
+# Copyright 2016 Panagiotis Dimopoulos (panosdim@gmail.com)
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License at (http://www.gnu.org/licenses/) for
+# more details.
+#
+# Version: 1.1
+# ---------------------------------------------------------------------------
+
+# Function that printout the correct usage of the script
+usage()
+{
+cat << EOF
+
+Usage: $0 
+
+Log the file changes of make install command.
+EOF
+}
+
+# Check for config.log file to find the install prefix otherwise ask the user
+if test -f "config.log" ; then
+  PREFIX=`grep '^prefix=' config.log | cut -d"'" -f2`
+else
+  read -e -p "Enter install dir path: " PREFIX
+fi
+
+# Get the name of current directory and use it as name of the uninstall script
+PACKAGE=`basename "$PWD"`
+
+# The default directory to store uninstall files is $HOME/uninstall_scripts
+if test ! -d $HOME/uninstall_scripts; then
+  mkdir $HOME/uninstall_scripts
+fi
+UNISTALL_PATH=$HOME/uninstall_scripts
+
+echo "Getting current timestamp"
+TIMESTAMP=@`date +%s`
+
+make install
+
+echo "Find files changed after make install"
+FILES=`find $PREFIX -newermt "$TIMESTAMP" | tac`
+
+# Delete previous unistall list file
+if test -f $UNISTALL_PATH/${PACKAGE}.sh; then
+  rm -f $UNISTALL_PATH/${PACKAGE}.sh
+fi
+
+# Generate the uninstall script
+cat > $UNISTALL_PATH/${PACKAGE}.sh << SCR_EOF
+#!/usr/bin/env bash
+read -r -d '' LIST << EOF
+$FILES
+$PREFIX
+EOF
+SCR_EOF
+cat >> $UNISTALL_PATH/${PACKAGE}.sh << 'FOR_EOF'
+for i in $LIST
+do
+  if test -d "$i" ; then
+    echo "Removing directory (only if it is empty) $i"
+    rmdir "$i" 2> /dev/null
+  else
+    echo "Deleting file $i"
+    rm -f "$i"
+  fi
+done
+echo "Finished"
+FOR_EOF
+
+# Make uninstall script executable
+chmod 755 $UNISTALL_PATH/${PACKAGE}.sh
+
+echo "Uninstall script saved in '$UNISTALL_PATH' as '${PACKAGE}.sh'"
