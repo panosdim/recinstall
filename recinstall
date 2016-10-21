@@ -25,7 +25,7 @@ cat << EOF
 
 Usage: $0 
 
-Log the file changes of make install command.
+Record the file changes of make install command and create an uninstall shell script.
 EOF
 }
 
