@@ -23,14 +23,34 @@ usage()
 {
 cat << EOF
 
-Usage: $0 
+Usage: $0 ['install command']
 
-Record the file changes of make install command and create an uninstall shell script.
+Record the file changes of install command and create an uninstall shell script.
+If second argument is omitted then default install command 'make install'is used.
+Give install command inside quote characters ' or ".
+Examples:
+$0 
+is the same as $0 'make install'
+
+$0 'jam install'
 EOF
 }
 
+# Uncomment to print debug info
+#set -x
+
+# Check command line arguments
+if [ $# -gt 1 ]; then
+  usage
+  exit
+fi
+if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+  usage
+  exit
+fi
+
 # Check for config.log file to find the install prefix otherwise ask the user
-if test -f "config.log" ; then
+if [ -f "config.log" ]; then
   PREFIX=`grep '^prefix=' config.log | cut -d"'" -f2`
 else
   read -e -p "Enter install dir path: " PREFIX
@@ -40,7 +60,7 @@ fi
 PACKAGE=`basename "$PWD"`
 
 # The default directory to store uninstall files is $HOME/uninstall_scripts
-if test ! -d $HOME/uninstall_scripts; then
+if [ ! -d $HOME/uninstall_scripts ]; then
   mkdir $HOME/uninstall_scripts
 fi
 UNISTALL_PATH=$HOME/uninstall_scripts
@@ -48,13 +68,17 @@ UNISTALL_PATH=$HOME/uninstall_scripts
 echo "Getting current timestamp"
 TIMESTAMP=@`date +%s`
 
-make install
+if [ -z "${1+x}" ]; then
+  make install
+else
+  $1
+fi
 
 echo "Find files changed after make install"
 FILES=`find $PREFIX -newermt "$TIMESTAMP" | tac`
 
 # Delete previous unistall list file
-if test -f $UNISTALL_PATH/${PACKAGE}.sh; then
+if [ -f $UNISTALL_PATH/${PACKAGE}.sh ]; then
   rm -f $UNISTALL_PATH/${PACKAGE}.sh
 fi
 
@@ -69,7 +93,7 @@ SCR_EOF
 cat >> $UNISTALL_PATH/${PACKAGE}.sh << 'FOR_EOF'
 for i in $LIST
 do
-  if test -d "$i" ; then
+  if [ -d "$i" ]; then
     echo "Removing directory (only if it is empty) $i"
     rmdir "$i" 2> /dev/null
   else
