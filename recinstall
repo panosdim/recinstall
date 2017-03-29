@@ -60,10 +60,10 @@ fi
 PACKAGE=`basename "$PWD"`
 
 # The default directory to store uninstall files is $HOME/uninstall_scripts
-if [ ! -d $HOME/uninstall_scripts ]; then
-  mkdir $HOME/uninstall_scripts
+if [ ! -d $HOME/opt/uninstall_scripts ]; then
+  mkdir $HOME/opt/uninstall_scripts
 fi
-UNISTALL_PATH=$HOME/uninstall_scripts
+UNISTALL_PATH=$HOME/opt/uninstall_scripts
 
 echo "Getting current timestamp"
 TIMESTAMP=@`date +%s`
